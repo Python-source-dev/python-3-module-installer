@@ -7,7 +7,7 @@ This package helps you to install all modules you need in your directory
 Installation
 ------------
 ```bash
-$ pip install python-3-module-installer
+$ pip install python-module-installer
 ```
 
 Sample Usage
