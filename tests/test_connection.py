@@ -1,7 +1,7 @@
 import unittest
 
-from webdav3.client import get_options
-from webdav3.connection import WebDAVSettings, OptionNotValid, ConnectionSettings
+from installer.install import get_options
+from installer.connection import WebDAVSettings, OptionNotValid, ConnectionSettings
 
 
 class ConnectionTestCase(unittest.TestCase):

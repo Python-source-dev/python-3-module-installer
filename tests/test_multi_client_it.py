@@ -1,7 +1,7 @@
 import unittest
 
 from tests.test_client_it import ClientTestCase
-from webdav3.client import Client
+from installer.install import ModuleInstaller
 
 
 class MultiClientTestCase(ClientTestCase):
@@ -19,7 +19,7 @@ class MultiClientTestCase(ClientTestCase):
 
     def setUp(self):
         super(ClientTestCase, self).setUp()
-        self.second_client = Client(self.options2)
+        self.second_client = ModuleInstaller(self.options2)
 
 
 if __name__ == '__main__':

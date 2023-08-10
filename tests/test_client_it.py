@@ -6,8 +6,8 @@ from os import path
 from time import sleep
 
 from tests.base_client_it import BaseClientTestCase
-from webdav3.client import Client
-from webdav3.exceptions import MethodNotSupported, OptionNotValid, RemoteResourceNotFound
+from installer.install import ModuleInstaller
+from installer.exceptions import MethodNotSupported, OptionNotValid, RemoteResourceNotFound
 
 
 class ClientTestCase(BaseClientTestCase):
@@ -65,13 +65,13 @@ class ClientTestCase(BaseClientTestCase):
 
     def test_check_another_client(self):
         self._prepare_for_uploading()
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         if self.client.check(self.remote_path_dir):
             self.client.clean(self.remote_path_dir)
         self.assertTrue(self.client.mkdir(self.remote_path_dir))
         self.assertTrue(self.client.check(self.remote_path_dir))
 
-        self.client.upload_sync(remote_path=self.remote_path_file, local_path=self.local_path_dir)
+        self.client.install_modules(remote_path=self.remote_path_file, local_path=self.local_path_dir)
         self.assertTrue(self.client.check(self.remote_path_file))
 
         self.assertTrue(client.check(self.remote_path_dir))
@@ -177,7 +177,7 @@ class ClientTestCase(BaseClientTestCase):
             self.assertTrue(self.client.check(self.remote_path_dir), 'Expected the directory is created.')
             self.assertTrue(self.client.check(self.remote_path_file), 'Expected the file is uploaded.')
 
-        self.client.upload_sync(remote_path=self.remote_path_file, local_path=self.local_path_dir, callback=callback)
+        self.client.install_modules(remote_path=self.remote_path_file, local_path=self.local_path_dir, callback=callback)
 
     def test_copy(self):
         self._prepare_for_downloading()

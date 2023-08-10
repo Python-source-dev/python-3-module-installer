@@ -5,8 +5,8 @@ from unittest.mock import patch, Mock, PropertyMock
 
 from lxml.etree import ElementTree, Element
 
-from webdav3.client import WebDavXmlUtils as Utils, listdir, MethodNotSupported, RemoteResourceNotFound, Client
-from webdav3.exceptions import ResponseErrorCode, NotEnoughSpace
+from installer.install import WebDavXmlUtils as Utils, listdir, MethodNotSupported, RemoteResourceNotFound, ModuleInstaller
+from installer.exceptions import ResponseErrorCode, NotEnoughSpace
 
 
 def read_file_content(file_name):
@@ -219,7 +219,7 @@ class ClientTestCase(TestCase):
 
     @patch('requests.Session')
     def test_auth_invoked(self, mock_session):
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         client.session.auth.return_value = True
         client.session.request.return_value.status_code = 200
         client.execute_request(action='list', path='')
@@ -227,25 +227,25 @@ class ClientTestCase(TestCase):
 
     @patch('requests.Session')
     def test_response_error_code(self, mock_session):
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         client.session.request.return_value.status_code = 400
         self.assertRaises(ResponseErrorCode, client.execute_request, action='list', path='')
 
     @patch('requests.Session')
     def test_method_not_supported(self, mock_session):
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         client.session.request.return_value.status_code = 405
         self.assertRaises(MethodNotSupported, client.execute_request, action='list', path='')
 
     @patch('requests.Session')
     def test_not_found(self, mock_session):
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         client.session.request.return_value.status_code = 404
         self.assertRaises(RemoteResourceNotFound, client.execute_request, action='list', path='')
 
     @patch('requests.Session')
     def test_not_enough_space(self, mock_session):
-        client = Client(self.options)
+        client = ModuleInstaller(self.options)
         client.session.request.return_value.status_code = 507
         self.assertRaises(NotEnoughSpace, client.execute_request, action='list', path='')
 

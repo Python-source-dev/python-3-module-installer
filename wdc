@@ -16,7 +16,7 @@ from distutils.util import strtobool
 
 import argcomplete
 
-from webdav3.client import Client, WebDavException, NotConnection, Urn
+from installer.install import ModuleInstaller, WebDavException, NotConnection, Urn
 
 
 def get_terminal_size():
@@ -241,7 +241,7 @@ def urn_completer(prefix, **kwargs):
 
     options = import_options()
     try:
-        client = Client(options)
+        client = ModuleInstaller(options)
 
         prefix_urn = Urn(prefix)
         if prefix_urn.is_dir():
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='wdc', formatter_class=Formatter, epilog=epilog, usage=usage)
     parser.add_argument("action", help=actions_help, choices=actions)
 
-    from webdav3.client import __version__ as version
+    from installer.install import __version__ as version
     version_text = "{name} {version}".format(name="%(prog)s", version=version)
     parser.add_argument("-v", '--version', action='version', version=version_text)
     parser.add_argument("-r", "--root", help="example: dir1/dir2")
@@ -359,7 +359,7 @@ if __name__ == "__main__":
             env['key_path'] = args.key_path
 
         try:
-            client = Client(env)
+            client = ModuleInstaller(env)
             check = client.check()
             text = "success" if check else "not success"
             print(text)
@@ -391,7 +391,7 @@ if __name__ == "__main__":
         elif action == 'check':
             options = import_options()
             try:
-                client = Client(options)
+                client = ModuleInstaller(options)
                 connection = client.check()
                 if not connection:
                     raise NotConnection(options["webdav_hostname"])
@@ -404,7 +404,7 @@ if __name__ == "__main__":
         elif action == 'free':
             options = import_options()
             try:
-                client = Client(options)
+                client = ModuleInstaller(options)
                 connection = client.check()
                 if not connection:
                     raise NotConnection(options["webdav_hostname"])
@@ -416,7 +416,7 @@ if __name__ == "__main__":
         elif action == 'ls':
             options = import_options()
             try:
-                client = Client(options)
+                client = ModuleInstaller(options)
                 connection = client.check()
                 if not connection:
                     raise NotConnection(options["webdav_hostname"])
@@ -432,7 +432,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -446,7 +446,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -460,7 +460,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -474,7 +474,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -493,7 +493,7 @@ if __name__ == "__main__":
                     progress_bar.callback(current=download_d, total=download_t)
 
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -526,7 +526,7 @@ if __name__ == "__main__":
                     progress_bar.callback(current=upload_d, total=upload_t)
 
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -554,7 +554,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -569,7 +569,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -583,7 +583,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -597,7 +597,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])
@@ -611,7 +611,7 @@ if __name__ == "__main__":
             else:
                 options = import_options()
                 try:
-                    client = Client(options)
+                    client = ModuleInstaller(options)
                     connection = client.check()
                     if not connection:
                         raise NotConnection(options["webdav_hostname"])

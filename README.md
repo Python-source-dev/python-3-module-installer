@@ -16,17 +16,19 @@ $ pip install webdavclient3
 
 Sample Usage
 ------------
+
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
+
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "login",
+ 'webdav_login': "login",
  'webdav_password': "password"
 }
-client = Client(options)
-client.verify = False # To not check SSL certificates (Default = True)
-client.session.proxies(...) # To set proxy directly into the session (Optional)
-client.session.auth(...) # To set proxy auth directly into the session (Optional)
+client = ModuleInstaller(options)
+client.verify = False  # To not check SSL certificates (Default = True)
+client.session.proxies(...)  # To set proxy directly into the session (Optional)
+client.session.auth(...)  # To set proxy auth directly into the session (Optional)
 client.execute_request("mkdir", 'directory_name')
 ```
 
@@ -43,76 +45,78 @@ For authentication in WebDAV server use `webdav_login`, `webdav_password`.
 For an anonymous login do not specify auth properties.
 
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
 
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "login",
+ 'webdav_login': "login",
  'webdav_password': "password"
 }
-client = Client(options)
+client = ModuleInstaller(options)
 ```
 
 If your server does not support `HEAD` method or there are other reasons to override default WebDAV methods for actions use a dictionary option `webdav_override_methods`. 
 The key should be in the following list: `check`, `free`, `info`, `list`, `mkdir`, `clean`, `copy`, `move`, `download`, `upload`,
  `publish` and `unpublish`. The value should a string name of WebDAV method, for example `GET`.
- 
+
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
 
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "login",
+ 'webdav_login': "login",
  'webdav_password': "password",
  'webdav_override_methods': {
-            'check': 'GET'
-        }
+  'check': 'GET'
+ }
 
 }
-client = Client(options)
+client = ModuleInstaller(options)
 ```
 
 For configuring a requests timeout you can use an option `webdav_timeout` with int value in seconds, by default the timeout is set to 30 seconds.
 
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
 
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "login",
+ 'webdav_login': "login",
  'webdav_password': "password",
  'webdav_timeout': 30
 }
-client = Client(options)
+client = ModuleInstaller(options)
 ```
 
 When a proxy server you need to specify settings to connect through it.
 
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
+
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "w_login",
- 'webdav_password': "w_password", 
- 'proxy_hostname':  "http://127.0.0.1:8080",
- 'proxy_login':     "p_login",
- 'proxy_password':  "p_password"
+ 'webdav_login': "w_login",
+ 'webdav_password': "w_password",
+ 'proxy_hostname': "http://127.0.0.1:8080",
+ 'proxy_login': "p_login",
+ 'proxy_password': "p_password"
 }
-client = Client(options)
+client = ModuleInstaller(options)
 ```
 
 If you want to use the certificate path to certificate and private key is defined as follows:
 
 ```python
-from webdav3.client import Client
+from installer.install import ModuleInstaller
+
 options = {
  'webdav_hostname': "https://webdav.server.ru",
- 'webdav_login':    "w_login",
+ 'webdav_login': "w_login",
  'webdav_password': "w_password",
- 'cert_path':       "/etc/ssl/certs/certificate.crt",
- 'key_path':        "/etc/ssl/private/certificate.key"
+ 'cert_path': "/etc/ssl/certs/certificate.crt",
+ 'key_path': "/etc/ssl/private/certificate.key"
 }
-client = Client(options)
+client = ModuleInstaller(options)
 ```
 
 Or you want to limit the speed or turn on verbose mode:
@@ -219,8 +223,8 @@ client.download_sync(remote_path="dir1/dir2/", local_path="~/Downloads/dir2/")
 ```python
 # Upload resource
 
-client.upload_sync(remote_path="dir1/file1", local_path="~/Documents/file1")
-client.upload_sync(remote_path="dir1/dir2/", local_path="~/Documents/dir2/")
+client.install_modules(remote_path="dir1/file1", local_path="~/Documents/file1")
+client.install_modules(remote_path="dir1/dir2/", local_path="~/Documents/dir2/")
 ```
 
 ```python
@@ -240,11 +244,12 @@ client.unpublish("dir2")
 ```python
 # Exception handling
 
-from webdav3.client import WebDavException
+from installer.install import WebDavException
+
 try:
-...
+ ...
 except WebDavException as exception:
-...
+ ...
 ```
 
 ```python

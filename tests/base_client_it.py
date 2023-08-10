@@ -5,7 +5,7 @@ import sys
 import unittest
 from os import path
 
-from webdav3.client import Client
+from installer.install import ModuleInstaller
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
@@ -58,7 +58,7 @@ class BaseClientTestCase(unittest.TestCase):
     # }
 
     def setUp(self):
-        self.client = Client(self.options)
+        self.client = ModuleInstaller(self.options)
         self.clean_local_dir(self.local_path_dir)
 
     def tearDown(self):
