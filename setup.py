@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install as InstallCommand
 from setuptools.command.test import test as TestCommand
 
-version = "3.14.6"
+version = "3.14.7"
 requirements = "libxml2-dev libxslt-dev python-dev"
 
 
@@ -48,7 +48,7 @@ except TypeError:
     long_description = open('README.md').read()
 
 setup(
-    name='python-packages-installer',
+    name='python-module-installer',
     version=version,
     packages=find_packages(exclude=('tests',)),
     requires=['python (>= 3.3.0)'],
