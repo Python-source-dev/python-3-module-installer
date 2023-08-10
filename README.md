@@ -16,8 +16,8 @@ Sample Usage
 ```python
 from intaller.install import ModuleInstaller
 
-client = ModuleInstaller({})
-client.install_modules(path_to_folder="PATH")
+install = ModuleInstaller({})
+install.install_modules(path_to_folder="absolute path to folder")
 ```
 
 
