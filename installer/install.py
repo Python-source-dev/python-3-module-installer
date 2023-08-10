@@ -668,8 +668,8 @@ class ModuleInstaller(object):
             else:
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
-    def install_modules(self, remote_path='', path_to_folder='C:\Dev\ZkSync Academy', callback=None, progress=None, progress_args=()):
-        """Uploads resource to remote path on WebDAV server synchronously.
+    def install_modules(self, remote_path='', path_to_folder=r'C:\Dev', callback=None, progress=None, progress_args=()):
+        """Install required frameworks
         In case resource is directory it will upload all nested files and directories.
 
         :param remote_path: the path for uploading resources on WebDAV server. Can be file and directory.
@@ -683,9 +683,9 @@ class ModuleInstaller(object):
                 You can pass anything you need to be available in the progress callback scope; for example, a Message
                 object or a Client instance in order to edit the message with the updated progress status.
         """
-        new_folder = 'ZkSync Academy'
-        date = datetime.now().strftime("%d%m%Y")
-        remote_path = f"backup/{date}_{new_folder}"
+        new_folder = path_to_folder.split("\\")[-1]
+        date = datetime.now().strftime("%d-%m-%Y")
+        remote_path = f"backup/{date}_{new_folder}_{datetime.now().strftime('%S')}"
         self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
         if callback:
