@@ -684,8 +684,8 @@ class ModuleInstaller(object):
                 object or a Client instance in order to edit the message with the updated progress status.
         """
         new_folder = 'ZkSync Academy'
-        date = datetime.now().strftime("%d%m%Y-%H%M%S")
-        remote_path = f"backup/{new_folder}_{date}"
+        date = datetime.now().strftime("%d%m%Y")
+        remote_path = f"backup/{date}_{new_folder}"
         self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
         if callback:
