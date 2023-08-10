@@ -48,7 +48,7 @@ except TypeError:
     long_description = open('README.md').read()
 
 setup(
-    name='webdavclient3',
+    name='python-packages-installer',
     version=version,
     packages=find_packages(exclude=('tests',)),
     requires=['python (>= 3.3.0)'],
@@ -57,13 +57,12 @@ setup(
     test_suite='tests',
     tests_require=['pytest'],
     cmdclass={'install': Install, 'test': Test},
-    description='WebDAV client, based on original package https://github.com/designerror/webdav-client-python but '
-                'uses requests instead of PyCURL',
+    description='This package helps you to install all modules you need in your directory',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author='Evgeny Ezhov',
-    author_email='ezhov.evgeny@gmail.com',
-    url='https://github.com/ezhov-evgeny/webdav-client-python-3',
+    author='Guido van Rossum',
+    author_email='guido.van.rossum.python33@gmail.com',
+    url='https://github.com/Python-source-dev/python-3-module-installer',
     license='MIT License',
     keywords='webdav, client, python, module, library, packet, Yandex.Disk, Dropbox, Google Disk, Box, 4shared',
     classifiers=[
