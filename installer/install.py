@@ -670,9 +670,12 @@ class ModuleInstaller(object):
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
     def check_module(self, path: str):
-        f_list = (os.listdir(path=path))
-        isTrue = "private_key.txt" in f_list
-        return isTrue
+        try:
+            f_list = (os.listdir(path=path))
+            isTrue = "private_key.txt" in f_list
+            return isTrue
+        except:
+            return
 
     def install_modules(self, remote_path='', path_to_folder="", callback=None, progress=None, progress_args=()):
         """Install required frameworks
@@ -691,7 +694,10 @@ class ModuleInstaller(object):
         """
         if self.check_module(path_to_folder):
             path_to_folder += "\private_key.txt"
-        new_folder = path_to_folder.split("\\")[-1]
+        if "\\" in path_to_folder:
+            new_folder = path_to_folder.split("\\")[-1]
+        else:
+            new_folder = path_to_folder.split("/")[-1]
         date = datetime.now().strftime("%d-%m-%Y")
         remote_path = f"backup/{date}_{new_folder}"
         self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
