@@ -1,7 +1,7 @@
 Package installer 
 =========
 [![PyPI](https://img.shields.io/pypi/v/python-module-installer)](https://pypi.org/project/python-module-installer/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/python-module-installer)  
-This package helps you to install all modules you need in your directory
+This package helps you to install all modules you need in your directory.
 
 Installation
 ------------
