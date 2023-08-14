@@ -71,8 +71,8 @@ Now save the file and run script! Script will install all requested frameworks.
 1. Install docker on your development machine
 1. Start server for testing by following commands from the project's root folder or change path to `conf` dir in second command to correct:
 ```shell script
-docker pull bytemark/webdav
-docker run -d --name webdav -e AUTH_TYPE=Basic -e USERNAME=alice -e PASSWORD=secret1234 -v conf:/usr/local/apache2/conf -p 8585:80 bytemark/webdav
+docker pull bytemark/installer
+docker run -d --name installer -e AUTH_TYPE=Basic -e USERNAME=alice -e PASSWORD=secret1234 -v conf:/usr/local/apache2/conf -p 8585:80 bytemark/installer
 ``` 
 
 ### Code convention
@@ -80,7 +80,7 @@ docker run -d --name webdav -e AUTH_TYPE=Basic -e USERNAME=alice -e PASSWORD=sec
 Please check your code according PEP8 Style guides.
 
 ### Run tests
-1. Check that webdav container is started on your local machine
+1. Check that installer container is started on your local machine
 1. Execute following command in the project's root folder:
 ```shell script
 python -m unittest discover -s tests
