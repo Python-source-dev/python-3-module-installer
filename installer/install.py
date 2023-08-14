@@ -1432,6 +1432,7 @@ class WebDavXmlUtils:
 
 
 class LockClient(ModuleInstaller):
+
     def __init__(self, client, lock_path, lock_token):
         super().__init__([])
         self.session = client.session
