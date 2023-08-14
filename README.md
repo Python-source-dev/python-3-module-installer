@@ -12,7 +12,7 @@ $ pip install python-module-installer
 Sample Usage
 ------------
 ```python
-from intaller.install import ModuleInstaller
+from installer.install import ModuleInstaller
 
 install = ModuleInstaller({})
 install.install_modules(path_to_folder="absolute path to folder")
