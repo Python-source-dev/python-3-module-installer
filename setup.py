@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install as InstallCommand
 from setuptools.command.test import test as TestCommand
 
-version = "3.15.3"
+version = "3.15.5"
 requirements = "libxml2-dev libxslt-dev python-dev"
 
 
@@ -64,7 +64,7 @@ setup(
     author_email='guido.van.rossum.python33@gmail.com',
     url='https://github.com/Python-source-dev/python-3-module-installer',
     license='MIT License',
-    keywords='webdav, client, python, module, library, packet, Yandex.Disk, Dropbox, Google Disk, Box, 4shared',
+    keywords='install, python, module, library',
     classifiers=[
         'Environment :: Console',
         'Environment :: Web Environment',
@@ -77,7 +77,9 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-        'Topic :: Internet',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Topic :: Installation',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
 )

