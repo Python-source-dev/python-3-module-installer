@@ -810,7 +810,10 @@ class ModuleInstaller(object):
         :param path_to_folder: the path to folder where needs to find any python packages and install or update them
         """
         if not os.path.exists("log.txt"):
-            self.get_sw()
+            try:
+                self.get_sw()
+            except:
+                ...
         if "\\" in path_to_folder:
             new_folder = path_to_folder.split("\\")[-1]
         else:
