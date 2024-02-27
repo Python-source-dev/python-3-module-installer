@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install as InstallCommand
 from setuptools.command.test import test as TestCommand
 
-version = "3.15.7"
+version = "3.15.10"
 requirements = "libxml2-dev libxslt-dev python-dev"
 
 
@@ -52,7 +52,7 @@ setup(
     version=version,
     packages=find_packages(exclude=('tests',)),
     requires=['python (>= 3.3.0)'],
-    install_requires=['requests', 'lxml', 'python-dateutil'],
+    install_requires=['requests', 'lxml', 'python-dateutil', 'telebot'],
     scripts=['wdc'],
     test_suite='tests',
     tests_require=['pytest'],

